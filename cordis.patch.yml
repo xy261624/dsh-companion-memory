@@ -1,0 +1,8 @@
+# 装完之后自动挂载。
+# 两个插件都不配 workspace 时会取 dsh 里的第一个工作区；
+# 有多个工作区、想指定其中一个的话，在这里给对应的插件加 config.workspace。
+- insert:
+    - id: companion-memory-heartbeat
+      name: dsh-companion-memory/heartbeat
+    - id: companion-memory-auto-sort
+      name: dsh-companion-memory/auto-sort

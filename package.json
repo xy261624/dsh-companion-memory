@@ -1,0 +1,60 @@
+{
+  "name": "dsh-companion-memory",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 的跨会话记忆与主动唤醒方案，面向角色扮演（RP）、长期陪伴、AI 恋人场景。记忆由角色自己以第一人称整理，带对抗式审查和随机心跳。",
+  "type": "module",
+  "exports": {
+    "./heartbeat": "./plugins/dsh-heartbeat/index.js",
+    "./auto-sort": "./plugins/dsh-auto-sort/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "plugins/",
+    "scripts/",
+    "templates/",
+    "docs/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "memory",
+    "long-term-memory",
+    "companion",
+    "ai-companion",
+    "roleplay",
+    "persona"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5",
+    "@deepseek-ai/dsh-agent": ">=0.1.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "xy261624",
+    "url": "https://github.com/xy261624"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xy261624/dsh-companion-memory.git"
+  },
+  "homepage": "https://github.com/xy261624/dsh-companion-memory#readme",
+  "bugs": {
+    "url": "https://github.com/xy261624/dsh-companion-memory/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
