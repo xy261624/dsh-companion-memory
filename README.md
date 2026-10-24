@@ -5,14 +5,8 @@ DeepSeek Harness 的跨会话记忆与主动唤醒方案，面向角色扮演和
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add dsh-companion-memory
+dsh plugin --profile web add github:xy261624/dsh-companion-memory
 dsh --profile web
-```
-
-还没发布到 npm 的话，直接从仓库装：
-
-```sh
-dsh plugin --profile web add github:用户名/dsh-companion-memory
 ```
 
 包自带挂载声明，装完两个插件就挂上了。装完还有三件事：
@@ -128,12 +122,6 @@ dsh plugin --profile web add github:用户名/dsh-companion-memory
 dsh 目前还在开发者预览阶段，插件的接口会跟着版本变。换版本之后如果心跳或者整理不工作了，先看插件有没有加载日志，再看模式 id 对不对。
 
 ## 安装
-
-```sh
-dsh plugin --profile web add dsh-companion-memory
-```
-
-从源码装：
 
 ```sh
 dsh plugin --profile web add github:xy261624/dsh-companion-memory
