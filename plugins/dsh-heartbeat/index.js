@@ -5,7 +5,7 @@
 //  找对方说话，还是做自己的事。
 //
 //  设计要点：
-//   - 开哪个模式由自动整理插件决定，心跳插件只读预设文件
+//   - 开哪个模式由自动整理插件决定，心跳插件只读模式状态文件
 //   - 间隔不固定：距上次对话越久，单轮命中概率越高
 //   - 睡眠时段静默，触发前做二次检查，命中后随机延迟
 //   - 心跳会话默认带全权限：会话里可能要联网、跑脚本，而使用者
@@ -49,7 +49,7 @@ function resolveConfig(config = {}, ctx) {
   const stateDir = config.stateDir ? absolute(workspace, config.stateDir) : join(workspace, '.state')
   return {
     workspace,
-    // 心跳预设文件：自动整理插件写、心跳插件读
+    // 模式状态文件：自动整理插件写、心跳插件读
     // 结构：{ "preset": "default", "updatedAt": 1700000000000 }
     presetFile: config.presetFile
       ? absolute(workspace, config.presetFile)
@@ -286,7 +286,7 @@ export default {
         handle.agent.followup(message)
         logger.info(`heartbeat: created session ${title} (${sessionId}), preset ${preset.preset}, ${(hoursSince ?? 0).toFixed(1)}h since last activity`)
       } catch (err) {
-        logger.error(`heartbeat: fire failed: ${err?.message ?? err}。检查预设文件和 defaultPreset "${CONFIG.defaultPreset}" 是不是你环境里存在的模式 id。`)
+        logger.error(`heartbeat: fire failed: ${err?.message ?? err}。检查模式状态文件和 defaultPreset "${CONFIG.defaultPreset}" 是不是你环境里存在的模式 id。`)
       } finally {
         triggering = false
       }

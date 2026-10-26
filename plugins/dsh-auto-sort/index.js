@@ -5,9 +5,9 @@
 //  把整理流程指给模型，让它把这几天的对话整理进记忆文件。
 //
 //  设计要点：
-//   - 整理会话默认带全权限：它要写工作区外的预设文件、跑脚本，
+//   - 整理会话默认带全权限：它要写工作区外的模式状态文件、跑脚本，
 //     而使用者常常不在电脑旁，没法逐次批权限。只影响这一个会话
-//   - 整理完写一份预设文件，记下下次心跳用哪个模式开新会话，心跳插件读这个文件
+//   - 整理完写一份模式状态文件，记下下次心跳用哪个模式开新会话，心跳插件读这个文件
 //   - 会话指纹缓存：日志没变过的会话不重复读
 // ============================================================
 
@@ -46,6 +46,8 @@ function resolveConfig(config = {}, ctx) {
     memoryGuide: config.memoryGuide ?? '记忆库/记忆系统说明.md',
     sortProcess: config.sortProcess ?? '整理流程.md',
     extractScript: config.extractScript ?? 'scripts/sort_memory.py',
+    userLabel: config.userLabel ?? null,
+    roleLabel: config.roleLabel ?? null,
     sortPreset: config.sortPreset ?? 'default',
     skipPresets: Array.isArray(config.skipPresets) ? config.skipPresets : [],
     checkIntervalMs: config.checkIntervalMs ?? 3 * 60 * 1000,
@@ -61,12 +63,13 @@ function defaultPrompt(cfg) {
   const process = absolute(cfg.workspace, cfg.sortProcess)
   const script = absolute(cfg.workspace, cfg.extractScript)
   const skip = cfg.skipPresets.length > 0 ? ` --skip-presets ${cfg.skipPresets.join(' ')}` : ''
+  const labels = `${cfg.userLabel ? ` --user-label "${cfg.userLabel}"` : ''}${cfg.roleLabel ? ` --role-label "${cfg.roleLabel}"` : ''}`
   return `📦 自动整理触发。按以下步骤执行：
 
 1. 读 ${guide}，了解整套记忆体系和每份文件的作用
-2. 运行整理脚本：${cfg.pythonCommand} "${script}" --workspace "${cfg.workspace}"${skip}
+2. 运行整理脚本：${cfg.pythonCommand} "${script}" --workspace "${cfg.workspace}"${skip}${labels}
 3. 读 ${process}，严格按里面的步骤执行
-4. 本会话带全权限，权限只用于完成这次整理：除了记忆文件和心跳预设文件，别动别的
+4. 本会话带全权限，权限只用于完成这次整理：除了记忆文件和模式状态文件，别动别的
 
 本会话由插件自动触发，📦 是占位符，不是对方本人发的消息。整理完成后把下次心跳要用的模式写进 ${cfg.presetFile}，不用问对方。`
 }
