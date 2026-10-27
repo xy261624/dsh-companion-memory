@@ -343,8 +343,8 @@ def main():
                         help="标题以这些前缀开头的会话不提取，多个用逗号隔开。默认跳过整理会话自己")
     parser.add_argument("--since-days", type=float, default=None,
                         help="只提取最近这么多天内的对话。第一次跑建议加上，不然会把历史会话全提出来")
-    parser.add_argument("--user-label", default=USER_LABEL, help="待整理文件里怎么称呼对方")
-    parser.add_argument("--role-label", default=ROLE_LABEL, help="待整理文件里怎么称呼角色")
+    parser.add_argument("--user-label", default=USER_LABEL, help="待整理文件里怎么称呼被整理的那个人，填模板里【称呼】换下来的叫法")
+    parser.add_argument("--role-label", default=ROLE_LABEL, help="待整理文件里怎么称呼角色自己，填模板里【角色】换下来的名字")
     args = parser.parse_args()
 
     workspace = os.path.abspath(args.workspace) if args.workspace else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
