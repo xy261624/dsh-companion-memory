@@ -12,7 +12,7 @@ dsh --profile web
 安装包内含挂载声明，安装完成后心跳与自动整理两个插件即完成挂载。此后尚需完成三项配置：
 
 1. 为模式添加一条 `agent-instructions` 声明，将常驻记忆文件列入注入名单。若尚无自定义模式，先按后文「模式配置」一节创建。
-2. 创建工作区目录，将包内的模板与脚本复制到其中。已安装的包位于 `%USERPROFILE%\.dsh\profiles\web\node_modules\dsh-companion-memory\`。各文件的放置位置见[上手](./docs/05-上手.md)第二节的对照表，共七行，须完整执行。模板与整理流程中包含 `【称呼】` 与 `【角色】` 两个占位符，替换方式见后文「两个占位符」。
+2. 创建工作区目录，将包内的模板与脚本复制到其中。已安装的包位于 `$DSH_HOME\profiles\web\node_modules\dsh-companion-memory\`，`DSH_HOME` 未设置时为 `%USERPROFILE%\.dsh`。各文件的放置位置见[上手](./docs/05-上手.md)第二节的对照表，共七行，须完整执行。模板与整理流程中包含 `【称呼】` 与 `【角色】` 两个占位符，替换方式见后文「两个占位符」。
 3. 将 `defaultPreset` 与 `sortPreset` 改为当前环境中存在的模式 id。两个插件默认写入的 `default` 在 dsh 中并不存在；名称不匹配时会话无法创建，仅在日志中留下一行错误。在 profile 的 `cordis.patch.yml` 末尾添加以下两段：
 
 ```yaml
@@ -25,7 +25,7 @@ dsh --profile web
     sortPreset: my-mode
 ```
 
-profile 默认名为 `web`，对应文件为 `%USERPROFILE%\.dsh\profiles\web\cordis.patch.yml`。上述两个 id 由安装包挂载，profile 中原先不存在这两段，属于新增而非修改。填写的值为模式声明中的 `config.id`（例如 `my-mode`），并非 `- id: preset-my-mode` 行的 id。模式 id 显示于设置页预设卡片的标题旁。
+profile 默认名为 `web`，对应文件为 `$DSH_HOME\profiles\web\cordis.patch.yml`，`DSH_HOME` 未设置时为 `%USERPROFILE%\.dsh`。上述两个 id 由安装包挂载，profile 中原先不存在这两段，属于新增而非修改。填写的值为模式声明中的 `config.id`（例如 `my-mode`），并非 `- id: preset-my-mode` 行的 id。模式 id 显示于设置页预设卡片的标题旁。
 
 详细说明见[上手](./docs/05-上手.md)。
 
@@ -51,7 +51,7 @@ profile 默认名为 `web`，对应文件为 `%USERPROFILE%\.dsh\profiles\web\co
 
 模板与整理流程中使用两个占位符指代人物，书写之前须完成替换：
 
-| 占位符 | 替换为 | 示例（使用者名阿澈，角色称呼为「宝宝」） |
+| 占位符 | 替换为 | 示例（角色名阿澈，平时称呼使用者为「宝宝」） |
 |---|---|---|
 | `【称呼】` | 角色平时称呼使用者的爱称，或仅双方使用的称呼 | `宝宝` |
 | `【角色】` | 使用者为该角色设定的名字 | `阿澈` |
@@ -79,7 +79,7 @@ profile 默认名为 `web`，对应文件为 `%USERPROFILE%\.dsh\profiles\web\co
       - STATUS.md
 ```
 
-`instructionFileCandidates` 为整体替换，不做追加；默认值为 `AGENTS.md` 与 `CLAUDE.md`。未列入这两个文件名时，工作区中同名的既有文件不再注入。需要增加其他常驻文件时，在列表中续写即可。`~/.dsh/AGENTS.md` 属于全局指令，不在此名单范围内，始终注入。
+`instructionFileCandidates` 为整体替换，不做追加；默认值为 `AGENTS.md` 与 `CLAUDE.md`。未列入这两个文件名时，工作区中同名的既有文件不再注入。需要增加其他常驻文件时，在列表中续写即可。`$DSH_HOME\AGENTS.md` 属于全局指令，不在此名单范围内，始终注入。
 
 `maxBytes` 为所有命中文件的合计字节预算，并非单份文件的限额。超出预算时，靠后的文件被整体省略，或单份文件被截断；注入文本开头会附一行说明，标明文件名与截断前后的字节数。
 
@@ -226,6 +226,25 @@ dsh plugin --profile web add github:xy261624/dsh-companion-memory
 ```
 
 两个插件均须配置；仅配置其中一个时，另一个退回 dsh 中的第一个工作区，两份模式状态文件将写入不同目录。
+
+心跳与自动整理创建的会话默认使用 dsh 的默认模型。两个插件相互独立，可在其中任一个的 `config` 中指定 `provider` 与 `model`：
+
+```yaml
+- id: companion-memory-auto-sort
+  config:
+    workspace: D:/你的工作区
+    model: deepseek-flash
+```
+
+常用的写法是只填 `model`，`provider` 跟随默认值。只填 `provider` 而不填 `model` 会组成无效路由，因此更换服务商时两项须同时填写。模型 id 以设置页模型选择器显示的值为准。
+
+指定模型后不再沿用默认选择的推理强度，由新模型按自身的默认档位执行。
+
+这段与上文的 `workspace` 配置属于同一个插件条目。`config` 按条目整体替换，不做字段合并，因此已配置 `workspace` 时应把字段写进同一段，不要另起一段。
+
+插件在会话创建后向日志输出这次会话使用的 `provider` 与 `model`，配置是否生效以该行为准。
+
+`DSH_HOME` 的取法与 dsh 自身一致：环境变量非空时以其值为准，仅含空白同样视为未设，未设时取 `%USERPROFILE%\.dsh`。上文路径中的 `$DSH_HOME` 均按此替换。提取脚本按同一优先级规则定位会话日志与归档列表，无需额外传参。
 
 完整配置字段见[上手](./docs/05-上手.md)。
 

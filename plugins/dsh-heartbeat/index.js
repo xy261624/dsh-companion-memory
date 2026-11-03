@@ -69,6 +69,10 @@ function resolveConfig(config = {}, ctx) {
     titles: Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : DEFAULT_TITLES,
     permissionPreset: config.permissionPreset ?? 'danger-full-access',
     prompt: config.prompt ?? null,
+    // 心跳会话使用的模型。两项都不配置时沿用 dsh 的默认选择；
+    // 只配置 model 是常见用法，provider 跟随默认值。
+    provider: config.provider ?? null,
+    model: config.model ?? null,
   }
 }
 
@@ -235,7 +239,13 @@ export default {
         const preset = readPreset()
         const title = getRandomTitle()
         const sessionId = `session-${randomUUID()}`
-        const selection = ctx.agentDefaultModel.currentSelection()
+        const fallback = ctx.agentDefaultModel.currentSelection()
+        const provider = CONFIG.provider || fallback.provider
+        const model = CONFIG.model || fallback.model
+        const switched = provider !== fallback.provider || model !== fallback.model
+        // 换了模型就不带默认选择里的推理强度：不同模型支持的档位不一样，
+        // 带过去轻则白花推理开销，重则首轮请求被拒。未换模型时原样沿用。
+        const selection = switched ? { provider, model } : { ...fallback }
 
         const handle = await ctx.agents.create({
           sessionId,
@@ -284,7 +294,7 @@ export default {
         })
 
         handle.agent.followup(message)
-        logger.info(`heartbeat: created session ${title} (${sessionId}), preset ${preset.preset}, ${(hoursSince ?? 0).toFixed(1)}h since last activity`)
+        logger.info(`heartbeat: created session ${title} (${sessionId}), preset ${preset.preset}, route ${selection.provider}/${selection.model}, ${(hoursSince ?? 0).toFixed(1)}h since last activity`)
       } catch (err) {
         logger.error(`heartbeat: fire failed: ${err?.message ?? err}。检查模式状态文件和 defaultPreset "${CONFIG.defaultPreset}" 是不是你环境里存在的模式 id。`)
       } finally {

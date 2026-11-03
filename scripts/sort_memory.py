@@ -17,6 +17,9 @@ sort_memory.py - 会话提取脚本（dsh 版）
   两种都认，版本高的优先。老会话被打开时会整份转成 v4 另存，seq 重新编号过，
   所以第一次换代时改用时间对齐，只提取游标之后的新内容，老内容不重复提。
 - 对方在界面上归档的会话跳过，归档等于明确不要了。
+- 会话日志和归档列表默认跟着 dsh 的 home 走：环境变量 DSH_HOME 有值就用它，
+  没有才退回 ~/.dsh。在 dsh 的 shell 工具里跑脚本时这个变量由 dsh 注入，
+  home 换过位置也不用另外传参。
 
 用法：
 
@@ -52,6 +55,26 @@ if hasattr(sys.stdout, "buffer"):
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
+
+
+def expand_home(path):
+    """展开路径开头的 ~，写法跟 dsh 自己认的那几种一样。"""
+    if path == "~":
+        return os.path.expanduser("~")
+    if path.startswith("~/") or path.startswith("~\\"):
+        return os.path.join(os.path.expanduser("~"), path[2:])
+    return path
+
+
+def dsh_home():
+    """
+    dsh 的 home 目录。取法跟 dsh 自己一致：先看环境变量 DSH_HOME，
+    没设或者设成空字符串就用 ~/.dsh。空字符串当没设，跟 dsh 的处理一样。
+    """
+    raw = (os.environ.get("DSH_HOME") or "").strip()
+    if raw:
+        return os.path.abspath(expand_home(raw))
+    return os.path.abspath(os.path.expanduser(os.path.join("~", ".dsh")))
 
 
 def ts_to_str(ts, tz_offset_hours=8):
@@ -114,11 +137,15 @@ def read_header(path):
     return None
 
 
-def scan_sessions(sessions_root, workspace):
+def scan_sessions(sessions_root, workspace, from_args=False):
     """扫描会话目录，只保留 cwd 等于目标工作区的会话。"""
     sessions = {}
     if not os.path.isdir(sessions_root):
         print(f"[错误] 会话目录不存在: {sessions_root}")
+        if from_args:
+            print("       这个路径来自 --sessions-root，确认一下有没有写对")
+        else:
+            print("       这是按 dsh home 推出来的默认位置。dsh home 不对的话，检查 DSH_HOME 环境变量，或用 --sessions-root 指定")
         return sessions
 
     target = os.path.normcase(os.path.normpath(workspace))
@@ -202,6 +229,10 @@ def read_archived_ids(workspace_state):
         with open(workspace_state, "r", encoding="utf-8") as f:
             state = json.load(f)
         return set(state.get("global", {}).get("archivedSessionIds", []))
+    except FileNotFoundError:
+        print(f"  [提示] 归档列表不存在: {workspace_state}")
+        print("         读不到就当作没有归档，被归档的会话会重新提取一遍。dsh home 换过位置的话，用 --workspace-state 指一下")
+        return set()
     except Exception:
         return set()
 
@@ -334,10 +365,12 @@ def main():
     parser = argparse.ArgumentParser(description="从 dsh 会话日志提取对话到待整理目录")
     parser.add_argument("--workspace", default=None,
                         help="工作区目录。省略时取脚本所在目录的上一层，脚本放在 <工作区>/scripts/ 下就能直接跑")
-    parser.add_argument("--sessions-root", default=None, help="默认 ~/.dsh/sessions")
+    parser.add_argument("--sessions-root", default=None,
+                        help="dsh 会话日志目录。默认取 DSH_HOME 下的 sessions，没设 DSH_HOME 时是 ~/.dsh/sessions")
     parser.add_argument("--cursor", default=None, help="默认 工作区/.state/cursor.json")
     parser.add_argument("--pending", default=None, help="默认 工作区/待整理")
-    parser.add_argument("--workspace-state", default=None, help="默认 ~/.dsh/storages/workspace.json")
+    parser.add_argument("--workspace-state", default=None,
+                        help="归档会话列表。默认取 DSH_HOME 下的 storages/workspace.json，没设 DSH_HOME 时是 ~/.dsh/storages/workspace.json")
     parser.add_argument("--skip-presets", nargs="*", default=[], help="这些模式的会话不提取，多个用空格隔开")
     parser.add_argument("--skip-title-prefix", default=DEFAULT_SKIP_TITLE_PREFIX,
                         help="标题以这些前缀开头的会话不提取，多个用逗号隔开。默认跳过整理会话自己")
@@ -349,10 +382,11 @@ def main():
 
     workspace = os.path.abspath(args.workspace) if args.workspace else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     skip_prefixes = tuple(p.strip() for p in (args.skip_title_prefix or "").split(",") if p.strip())
-    sessions_root = args.sessions_root or os.path.expanduser(os.path.join("~", ".dsh", "sessions"))
+    home = dsh_home()
+    sessions_root = os.path.abspath(expand_home(args.sessions_root)) if args.sessions_root else os.path.join(home, "sessions")
     cursor_file = args.cursor or os.path.join(workspace, ".state", "cursor.json")
     pending_dir = args.pending or os.path.join(workspace, "待整理")
-    workspace_state = args.workspace_state or os.path.expanduser(os.path.join("~", ".dsh", "storages", "workspace.json"))
+    workspace_state = os.path.abspath(expand_home(args.workspace_state)) if args.workspace_state else os.path.join(home, "storages", "workspace.json")
     skip_presets = tuple(args.skip_presets)
 
     since_time = None
@@ -362,6 +396,8 @@ def main():
     print("=" * 50)
     print("  会话提取")
     print(f"  工作区: {workspace}")
+    print(f"  dsh home: {home}")
+    print(f"  会话日志: {sessions_root}")
     print(f"  运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 50)
 
@@ -373,7 +409,7 @@ def main():
         print("       只想处理最近的对话的话，加上 --since-days 7 之类的参数重跑。")
 
     print("\n[1/4] 扫描会话日志...")
-    sessions = scan_sessions(sessions_root, workspace)
+    sessions = scan_sessions(sessions_root, workspace, from_args=args.sessions_root is not None)
     if not sessions:
         print("  没有找到属于这个工作区的会话")
         return

@@ -1,6 +1,6 @@
 {
   "name": "dsh-companion-memory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DeepSeek Harness 的跨会话记忆与主动唤醒方案，面向角色扮演（RP）、长期陪伴、AI 恋人场景。记忆由角色自己以第一人称整理，带对抗式审查和随机心跳。",
   "type": "module",
   "exports": {
